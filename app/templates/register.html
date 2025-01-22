@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - Falcon LLM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-md w-96">
+        <h1 class="text-2xl font-bold mb-6 text-center">Create Account</h1>
+        <form id="register-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium mb-1">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Email</label>
+                <input type="email" id="email" name="email" required
+                       class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
+            </div>
+            <button type="submit" 
+                    class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors">
+                Register
+            </button>
+            <div id="error-message" class="text-red-500 text-sm hidden"></div>
+            <div id="success-message" class="text-green-500 text-sm hidden"></div>
+        </form>
+        <div class="mt-4 text-center">
+            <span class="text-gray-600">Already have an account? </span>
+            <a href="/login" class="text-blue-500 hover:underline">Login here</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                username: document.getElementById('username').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+
+            const errorDiv = document.getElementById('error-message');
+            const successDiv = document.getElementById('success-message');
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+
+                successDiv.textContent = 'Registration successful! Redirecting to login...';
+                successDiv.classList.remove('hidden');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

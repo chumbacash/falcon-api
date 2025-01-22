@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Falcon-7B Chat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen">
+    <div class="container mx-auto max-w-4xl h-full flex flex-col">
+        <div class="bg-white shadow-lg rounded-lg flex-1 flex flex-col m-4">
+            <!-- Chat Header -->
+            <div class="p-4 border-b flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-800">Falcon-7B Chat</h1>
+                <div class="flex items-center gap-4">
+                    <span id="username-display" class="text-gray-600"></span>
+                    <button onclick="logout()" class="text-red-500 hover:text-red-700">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Chat Messages Container -->
+            <div class="flex-1 p-4 overflow-y-auto" id="chat-container">
+                <div class="text-center text-gray-500 py-4" id="loading-indicator" style="display: none;">
+                    Generating response...
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="p-4 border-t">
+                <form id="chat-form" class="flex gap-2">
+                    <input type="text" id="user-input" 
+                           class="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Type your message..." autocomplete="off">
+                    <button type="submit" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        Send
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+            window.location.href = '/login';
+        }
+
+        // Display username
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            document.getElementById('username-display').textContent = `@${payload.sub}`;
+        } catch {
+            logout();
+        }
+
+        // Chat functionality
+        document.getElementById('chat-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('user-input');
+            const message = input.value.trim();
+            const loading = document.getElementById('loading-indicator');
+            
+            if (!message) return;
+
+            try {
+                // Disable input during processing
+                input.disabled = true;
+                loading.style.display = 'block';
+                addMessage('user', message);
+                input.value = '';
+
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ message })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Request failed');
+                }
+
+                const data = await response.json();
+                addMessage('assistant', data.response);
+
+            } catch (error) {
+                addMessage('error', error.message);
+            } finally {
+                input.disabled = false;
+                loading.style.display = 'none';
+                input.focus();
+            }
+        });
+
+        function addMessage(role, content) {
+            const container = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `mb-4 p-3 rounded-lg ${
+                role === 'user' ? 'bg-blue-100 ml-auto max-w-[80%]' 
+                : role === 'error' ? 'bg-red-100 mr-auto max-w-[80%]'
+                : 'bg-gray-100 mr-auto max-w-[80%]'
+            }`;
+            messageDiv.textContent = content;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        }
+    </script>
+</body>
+</html>
